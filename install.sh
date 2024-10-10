@@ -52,4 +52,13 @@ EOL
 
 echo -e "\033[32mConfiguration saved to $CONFIG_FILE\033[0m"
 
+go build -o transfercli
+
+if [ $? -eq 0 ]; then
+    echo -e "\033[32mProject compiled successfully.\033[0m"
+else
+    echo -e "\033[31mFailed to compile the project.\033[0m"
+    exit 1
+fi
+
 echo -e "\033[32mInstallation and setup completed successfully.\033[0m"

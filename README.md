@@ -9,7 +9,7 @@ To install TransferCLI, follow these steps:
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/yourusername/transfercli.git
+   git clone https://github.com/julian-patterson/transfer-cli.git
    cd transfercli
    ```
 
@@ -24,8 +24,23 @@ To install TransferCLI, follow these steps:
 
    - Check if Go is installed, and if not, install it.
    - Install all project dependencies.
-   - Create a [config.yaml](http://_vscodecontentref_/#%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fjulian%2FDeveloper%2Fgo-cli%2Fconfig.yaml%22%2C%22path%22%3A%22%2Fhome%2Fjulian%2FDeveloper%2Fgo-cli%2Fconfig.yaml%22%2C%22scheme%22%3A%22file%22%7D%7D) file.
+   - Create a `config.yaml` file.
    - Prompt you to enter the SSH configuration details.
+
+3. Add `transfercli` to PATH
+
+   - Open your `bashrc`, `zshrc` or other shell source file
+
+   ```sh
+   export PATH=$PATH:/path/to/transfercli
+   ```
+
+   - Save and quit the file
+   - Source the file
+
+   ```sh
+   source ~/.zshrc
+   ```
 
 ## Usage
 
@@ -36,7 +51,7 @@ TransferCLI provides several commands for SSH operations. Below are the availabl
 To set or update the SSH configuration, use the `set` command:
 
 ```sh
-./transfercli set --user your_user --password your_password --host your_host --port 22 --remoteDir ./remote/dir --localDir ./local/dir
+transfercli set --user your_user --password your_password --host your_host --port 22 --remoteDir ./remote/dir --localDir ./local/dir
 ```
 
 ### List Files
@@ -44,7 +59,7 @@ To set or update the SSH configuration, use the `set` command:
 To list files in a remote directory, use the list command:
 
 ```sh
-./transfercli list
+transfercli list
 ```
 
 ### Transfer Files
@@ -52,7 +67,7 @@ To list files in a remote directory, use the list command:
 To transfer files from a remote directory to a local directory, use the `transfer` command:
 
 ```sh
-./transfercli transfer
+transfercli transfer
 ```
 
 ### Configuration
@@ -85,7 +100,7 @@ git checkout -b feature-branch
 4. Commit your changes:
 
 ```sh
-git commit -m "Description of changes"
+git commit -m "Description of changes
 ```
 
 5. Push to the branch:
