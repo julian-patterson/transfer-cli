@@ -1,7 +1,7 @@
 package main
 
 import (
-    "./cmd"
+    "go-cli/cmd"
 )
 
 func main() {

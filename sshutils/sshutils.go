@@ -75,7 +75,7 @@ func TransferFiles(client *ssh.Client, remoteDir, localDir string) error {
             return fmt.Errorf("failed to transfer file %s: %v", file, err)
         }
 
-        fmt.Printf("Successfully transferred %s to %s\n", file, localFilePath)
+        log.Printf("\033[32mSuccessfully transferred %s to %s\033[0m\n", file, localFilePath)    
     }
 
     return nil

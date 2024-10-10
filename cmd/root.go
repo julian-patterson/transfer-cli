@@ -6,7 +6,7 @@ import (
     "os"
 
     "github.com/spf13/cobra"
-    "../sshutils"
+    "go-cli/sshutils"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-    Use:   "yourproject",
+    Use:   "transfercli",
     Short: "A CLI tool for SSH operations",
     Long:  `A CLI tool for listing and transferring files over SSH.`,
 }
@@ -40,6 +40,8 @@ var listCmd = &cobra.Command{
         }
     },
 }
+
+
 
 var transferCmd = &cobra.Command{
     Use:   "transfer",
