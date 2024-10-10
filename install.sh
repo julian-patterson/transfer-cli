@@ -36,11 +36,9 @@ read -p "Enter SSH username: " user
 read -p "Enter SSH password: " password
 read -p "Enter SSH host: " host
 read -p "Enter SSH port (default is 22): " port
-read -p "Enter remote directory (relative to user login): " remoteDir
-read -p "Enter local directory (relative path to source file): " localDir
+read -p "Enter remote directory (relative to user login; ex: ./remote/Dir): " remoteDir
+read -p "Enter local directory (relative path to source file; ex: ./local/Dir): " localDir
 
-remoteDir=".$remoteDir"
-localDir=".$localDir"
 
 # Update config.yaml with user input
 cat <<EOL > $CONFIG_FILE
