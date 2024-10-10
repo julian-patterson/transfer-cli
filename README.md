@@ -85,7 +85,7 @@ git checkout -b feature-branch
 4. Commit your changes:
 
 ```sh
-git commit -m "Description of changes
+git commit -m "Description of changes"
 ```
 
 5. Push to the branch:
