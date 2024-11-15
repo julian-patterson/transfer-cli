@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"go-cli/sshutils"
 
@@ -132,12 +133,107 @@ var listCmd = &cobra.Command{
 
 var commitCmd = &cobra.Command{
 	Use:   "commit",
-	Short: "Commit files to staging area",
+	Short: "Commit files to staging area. Fetches all files in subdirectories.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		commitFile := args
+		var committedFiles []string
+
+		for _, file := range commitFile {
+			// Check if the file exists in the current directory
+			if _, err := os.Stat(file); err == nil {
+				fmt.Println("\033[32m ---> Committing file:", file, "\033[0m")
+				committedFiles = append(committedFiles, file)
+				continue
+			} else if os.IsNotExist(err) {
+				// If the file does not exist in the current directory, check in subdirectories
+				found := false
+				err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					if !info.IsDir() && filepath.Base(path) == file {
+						found = true
+						fmt.Println("\033[32m ---> Committing file:", path, "\033[0m")
+						committedFiles = append(committedFiles, path)
+						return filepath.SkipDir
+					}
+					return nil
+				})
+				if err != nil {
+					fmt.Println("\033[31m ---> Error while walking through directories: ", err, "\033[0m")
+				}
+
+				if !found {
+					fmt.Println("\033[31m ---> File not found:", file, "\033[0m")
+				}
+			} else {
+				fmt.Println("\033[31m ---> Error checking file:", file, "\033[0m")
+			}
+		}
+
+		// Create or open up Os file
+		file, err := os.OpenFile(".committed_files", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			fmt.Println("\033[31m ---> Failed to open .committed_files \033[0m")
+		}
+		defer file.Close()
+
+		for _, committedFile := range committedFiles {
+			if _, err := file.WriteString(committedFile + "\n"); err != nil {
+				fmt.Println("\033[31m ---> Failed to add committed files \033[0m")
+			}
+		}
+	},
+}
+
+var syncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync files to remote directory using commit function",
+	Run: func(cmd *cobra.Command, args []string) {
+		params := checkParams(Params{user, password, host, port, remoteDir, localDir})
+
+		data, err := os.ReadFile(".committed_files")
+		if err != nil {
+			fmt.Println("\033[31m ---> Failed to read .committed_files \033[0m")
+		}
+
+		client, err := sshutils.SshConnect(user, password, host, port)
+		if err != nil {
+			log.Fatalf("SSH connection failed: %v", err)
+		}
+		defer client.Close()
+
+		files := strings.Split((string(data)), "\n")
+		if len(files) == 0 || (len(files) == 1 && files[0] == "") {
+			fmt.Println("\033[31m ---> No files to sync \033[0m")
+			fmt.Println("\033[31m ---> Please add files to commit stage using `commit` command \033[0m")
+			return
+		}
+
+		for _, file := range files {
+			if file != "" {
+				err := sshutils.TransferFiles(client, file, params.RemoteDir)
+				if err != nil {
+					fmt.Printf("\033[31m ---> Failed to synced file: %s \033[0m\n", file)
+				} else {
+					fmt.Printf("\033[32m ---> Successfully synced file: %s \033[0m\n", file)
+				}
+			}
+		}
+
+		err = os.WriteFile(".committed_files", []byte(""), 0644)
+		if err != nil {
+			fmt.Println("\033[31m ---> Failed to clear .committed_files \033[0m")
+		} else {
+			// fmt.Printf("\033[32m ---> Successfully synced all files over to %s in %s \033[0m\n", params.Host, params.RemoteDir)
+		}
+	},
 }
 
 var transferCmd = &cobra.Command{
 	Use:   "transfer",
-	Short: "Transfer files from a remote directory to a local directory",
+	Short: "Directly transfer files from a remote directory to a local directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		params := checkParams(Params{user, password, host, port, remoteDir, localDir})
 
@@ -147,7 +243,7 @@ var transferCmd = &cobra.Command{
 		}
 		defer client.Close()
 
-		err = sshutils.TransferFiles(client, remoteDir, localDir)
+		err = sshutils.TransferFiles(client, params.RemoteDir, params.LocalDir)
 		if err != nil {
 			log.Fatalf("\033[31mFailed to transfer files: %v\033[0m", err)
 		}
@@ -184,7 +280,7 @@ var setCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("\033[31mFailed to marshal config: %v\033[0m", err)
 		}
-		err = ioutil.WriteFile("config.yaml", data, 0644)
+		err = os.WriteFile("config.yaml", data, 0644)
 		if err != nil {
 			log.Fatalf("\033[31mFailed to write config file: %v\033[0m", err)
 		}
@@ -205,6 +301,15 @@ func loadConfig() Config {
 	return config
 }
 
+func initCommittedFile() error {
+	file, err := os.OpenFile(".committed_files", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return nil
+}
+
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&user, "user", "u", "", "SSH username")
 	rootCmd.PersistentFlags().StringVarP(&password, "password", "p", "", "SSH password")
@@ -216,6 +321,12 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(transferCmd)
 	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(commitCmd)
+	rootCmd.AddCommand(syncCmd)
+
+	if err := initCommittedFile(); err != nil {
+		log.Fatalf("\033[31mFailed to initialize committed file tracker: %v\033[0m", err)
+	}
 }
 
 func Execute() {
