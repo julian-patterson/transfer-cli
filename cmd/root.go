@@ -50,19 +50,19 @@ func checkParams(Params Params) Params {
 	config := loadConfig()
 	if Params.User == "" {
 		Params.User = config.User
-		if user == "" {
+		if Params.User == "" {
 			log.Fatalf("\033[31mMissing required configuration: user.\nPlease provide the user flag or set the user using set command\033[0m")
 		}
 	}
 	if Params.Password == "" {
 		Params.Password = config.Password
-		if password == "" {
+		if Params.Password == "" {
 			log.Fatalf("\033[31mMissing required configuration: password.\nPlease provide the password flag or set the password using set command\033[0m")
 		}
 	}
 	if Params.Host == "" {
 		Params.Host = config.Host
-		if host == "" {
+		if Params.Host == "" {
 			log.Fatalf("\033[31mMissing required configuration: host.\nPlease provide the host flag or set the host using set command\033[0m")
 		}
 	}
@@ -71,13 +71,13 @@ func checkParams(Params Params) Params {
 	}
 	if Params.RemoteDir == "" {
 		Params.RemoteDir = config.RemoteDir
-		if remoteDir == "" {
+		if Params.RemoteDir == "" {
 			log.Fatalf("\033[31mMissing required configuration: remoteDir.\nPlease provide the remoteDir flag or set the remoteDir using set command\033[0m")
 		}
 	}
 	if Params.LocalDir == "" {
 		Params.LocalDir = config.LocalDir
-		if localDir == "" {
+		if Params.LocalDir == "" {
 			log.Fatalf("\033[31mMissing required configuration: localDir.\nPlease provide the localDir flag or set the localDir using set command\033[0m")
 		}
 	}
@@ -198,7 +198,7 @@ var syncCmd = &cobra.Command{
 			fmt.Println("\033[31m ---> Failed to read .committed_files \033[0m")
 		}
 
-		client, err := sshutils.SshConnect(user, password, host, port)
+		client, err := sshutils.SshConnect(params.User, params.Password, params.Host, params.Port)
 		if err != nil {
 			log.Fatalf("SSH connection failed: %v", err)
 		}
@@ -226,7 +226,7 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("\033[31m ---> Failed to clear .committed_files \033[0m")
 		} else {
-			// fmt.Printf("\033[32m ---> Successfully synced all files over to %s in %s \033[0m\n", params.Host, params.RemoteDir)
+			fmt.Printf("\033[32m ---> Successfully synced all files over to %s in %s \033[0m\n", params.Host, params.RemoteDir)
 		}
 	},
 }
