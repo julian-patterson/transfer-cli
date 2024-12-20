@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"go-cli/utils"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"go-cli/sshutils"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -117,13 +115,13 @@ var listCmd = &cobra.Command{
 			}
 		}
 
-		client, err := sshutils.SshConnect(user, password, host, port)
+		client, err := utils.SshConnect(user, password, host, port)
 		if err != nil {
 			log.Fatalf("\033[31mSSH connection failed: %v\033[0m", err)
 		}
 		defer client.Close()
 
-		err = sshutils.ListFilesInRemoteDir(client, remoteDir)
+		err = utils.ListFilesInRemoteDir(client, remoteDir)
 		if err != nil {
 			log.Fatalf("\033[31mFailed to list files in remote directory: %v\033[0m", err)
 		}
@@ -191,42 +189,41 @@ var syncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync files to remote directory using commit function",
 	Run: func(cmd *cobra.Command, args []string) {
-		params := checkParams(Params{user, password, host, port, remoteDir, localDir})
-
-		data, err := os.ReadFile(".committed_files")
+		outputStatus, err := utils.GetGitStatus()
 		if err != nil {
-			fmt.Println("\033[31m ---> Failed to read .committed_files \033[0m")
+			fmt.Println("\033[31m ---> Error getting git status: ", err, "\033[0m")
 		}
 
-		client, err := sshutils.SshConnect(params.User, params.Password, params.Host, params.Port)
-		if err != nil {
-			log.Fatalf("SSH connection failed: %v", err)
-		}
-		defer client.Close()
-
-		files := strings.Split((string(data)), "\n")
-		if len(files) == 0 || (len(files) == 1 && files[0] == "") {
-			fmt.Println("\033[31m ---> No files to sync \033[0m")
-			fmt.Println("\033[31m ---> Please add files to commit stage using `commit` command \033[0m")
-			return
-		}
-
-		for _, file := range files {
-			if file != "" {
-				err := sshutils.TransferFiles(client, file, params.RemoteDir)
-				if err != nil {
-					fmt.Printf("\033[31m ---> Failed to synced file: %s \033[0m\n", file)
-				} else {
-					fmt.Printf("\033[32m ---> Successfully synced file: %s \033[0m\n", file)
-				}
+		if outputStatus == "" {
+			fmt.Println("\033[32m ---> No changes to sync \033[0m")
+			errPull := utils.GitPullChanges()
+			if errPull != nil {
+				fmt.Println("\033[31m ---> Error pulling changes: ", err, "\033[0m")
 			}
-		}
-
-		err = os.WriteFile(".committed_files", []byte(""), 0644)
-		if err != nil {
-			fmt.Println("\033[31m ---> Failed to clear .committed_files \033[0m")
+			fmt.Println("\033[32m ---> Changes pulled \033[0m")
 		} else {
-			fmt.Printf("\033[32m ---> Successfully synced all files over to %s in %s \033[0m\n", params.Host, params.RemoteDir)
+			fmt.Println("\033[32m ---> Changes detected \033[0m")
+			errAdd := utils.GitAddChanges()
+			if errAdd != nil {
+				fmt.Println("\033[31m ---> Error adding changes: ", err, "\033[0m")
+			}
+			fmt.Println("\033[32m ---> Changes added: \033[0m")
+			fmt.Println(outputStatus)
+
+			fmt.Print("Would you like to proceed (y)/n? ")
+			var input string
+			fmt.Scanln(&input)
+			if input == "n" {
+				fmt.Println("\033[31m ---> Sync aborted \033[0m")
+				return
+			}
+
+			// Commit the changes
+			errCommit := utils.GitCommitChanges(outputStatus)
+			if errCommit != nil {
+				fmt.Println("\033[31m ---> Error committing changes: ", err, "\033[0m")
+			}
+			fmt.Println("\033[32m ---> Changes committed \033[0m")
 		}
 	},
 }
@@ -237,13 +234,13 @@ var transferCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		params := checkParams(Params{user, password, host, port, remoteDir, localDir})
 
-		client, err := sshutils.SshConnect(params.User, params.Password, params.Host, params.Port)
+		client, err := utils.SshConnect(params.User, params.Password, params.Host, params.Port)
 		if err != nil {
 			log.Fatalf("\033[31mSSH connection failed: %v\033[0m", err)
 		}
 		defer client.Close()
 
-		err = sshutils.TransferFiles(client, params.RemoteDir, params.LocalDir)
+		err = utils.TransferFiles(client, params.RemoteDir, params.LocalDir)
 		if err != nil {
 			log.Fatalf("\033[31mFailed to transfer files: %v\033[0m", err)
 		}

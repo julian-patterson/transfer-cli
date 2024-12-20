@@ -1,10 +1,11 @@
-package sshutils
+package utils
 
 import (
 	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -106,5 +107,69 @@ func CopyFileFromRemote(client *ssh.Client, remoteFilePath, localFilePath string
 		return fmt.Errorf("failed to copy file %s: %v", remoteFilePath, err)
 	}
 
+	return nil
+}
+
+func GetGitStatus() (string, error) {
+	cmd := exec.Command("git", "status", "--short")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = "    - " + line
+		}
+	}
+	return strings.Join(lines, "\n"), nil
+}
+
+func GitAddChanges() error {
+	cmd := exec.Command("git", "add", ".")
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to add changes: %v", err)
+	}
+	return nil
+}
+
+func GitCommitChanges(updatedChanges string) error {
+	changesFormatted := "Auto commit changes\n\n " + updatedChanges
+	cmd := exec.Command("git", "commit", "-m", changesFormatted)
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to commit changes: %v", err)
+	}
+	return nil
+}
+
+func GitPushChanges() error {
+	cmd := exec.Command("git", "push")
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to push changes: %v", err)
+	}
+	return nil
+}
+
+func GitPullChanges() error {
+	cmd := exec.Command("git", "pull")
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to pull changes: %v", err)
+	}
+	return nil
+}
+
+func GitStashChanges() error {
+	cmd := exec.Command("git", "stash")
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to stash changes: %v", err)
+	}
 	return nil
 }
